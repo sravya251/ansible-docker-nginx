@@ -18,6 +18,14 @@
           - git
           - docker
         state: present
+    
+    - name: Ensure backend log directory exists 
+      file:
+        path: /var/log/global
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
 
     - name: Start and enable Docker
       service:
