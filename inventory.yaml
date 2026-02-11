@@ -1,9 +1,0 @@
-all:
-  children:
-    docker_hosts:
-      hosts:
-        localhost:
-          ansible_connection: local
-
-
-
