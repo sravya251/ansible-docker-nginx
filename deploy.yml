@@ -5,11 +5,11 @@
   become: yes
 
   vars:
-    repo_url: https://github.com/yaswanth-1999/ToDo-Full-Stack-App.git
+    repo_url: https://github.com/sravya251/java-angular-basic.git
     app_dir: /opt/app
-    project_dir: "{{ app_dir }}/ToDo-Full-Stack-App"
+    project_dir: "{{ app_dir }}/Full-Stack-App"
     backend_port_host: 8081
-    backend_port_container: 8080
+    backend_port_container: 8081
 
   tasks:
     - name: Install required packages
@@ -21,7 +21,7 @@
     
     - name: Ensure backend log directory exists 
       file:
-        path: /var/log/global
+        path: /var/log/java_angular
         state: directory
         owner: root
         group: root
@@ -51,9 +51,9 @@
       ignore_errors: yes
 
     - name: Build backend Docker image
-      command: docker build -t employee-backend .
+      command: docker build -t backend .
       args:
-        chdir: "{{ project_dir }}/backend-springboot-h2"
+        chdir: "{{ project_dir }}/backend"
 
     - name: Run backend container
       command: >
@@ -63,19 +63,20 @@
         --restart always
         employee-backend
 
+# ================= FRONTEND DEPLOYMENT (ANGULAR) =================
 
-# ================= FRONTEND DEPLOYMENT =================
-
-- name: Rebuild and redeploy Frontend App
+- name: Rebuild and redeploy Angular Frontend App
   hosts: frontend
   become: yes
 
   vars:
-    repo_url: https://github.com/yaswanth-1999/ToDo-Full-Stack-App.git
+    repo_url: https://github.com/sravya251/java-angular-basic.git
     app_dir: /opt/app
-    project_dir: "{{ app_dir }}/ToDo-Full-Stack-App"
-    frontend_port_host: 3000
-    backend_proxy_url: "http://13.233.123.11:8081"
+    project_dir: "{{ app_dir }}/Full-Stack-App"
+    # Angular typically lives in a different folder name than React
+    frontend_subdir: "frontend" 
+    frontend_port_host: 4200
+    backend_proxy_url: "http://43.205.214.93:8081"
 
   tasks:
     - name: Install required packages
@@ -104,29 +105,30 @@
         version: main
         force: yes
 
-    - name: Update API URL in TodoApiService.js
+    - name: Update API URL in environment.prod.ts
       lineinfile:
-        path: "{{ project_dir }}/frontend-react-app/src/components/todo/api/TodoApiService.js"
-        regexp: "const API_URL = .*"
-        line: "const API_URL = '{{ backend_proxy_url }}';"
+        path: "{{ project_dir }}/{{ frontend_subdir }}/src/environments/environment.prod.ts"
+        regexp: "apiUrl:.*"
+        line: "  apiUrl: '{{ backend_proxy_url }}'"
         backup: yes
+      # Note: Ensure your Angular code uses environment.apiUrl for HTTP calls
 
     - name: Stop old frontend container if exists
-      command: docker rm -f frontend
+      command: docker rm -f frontend-angular
       ignore_errors: yes
 
     - name: Build frontend Docker image
-      command: docker build -t employee-frontend .
+      command: docker build -t frontend-angular .
       args:
-        chdir: "{{ project_dir }}/frontend-react-app"
+        chdir: "{{ project_dir }}/{{ frontend_subdir }}"
 
     - name: Run frontend container
       command: >
         docker run -d
         --name frontend
-        -p {{ frontend_port_host }}:80
+        -p {{ frontend_port_host }}:4200
         --restart always
-        employee-frontend
+        frontend-angular
 
     - name: Verify running containers
       command: docker ps
@@ -135,4 +137,145 @@
     - name: Display running containers
       debug:
         var: docker_output.stdout_lines
+
+
+
+
+# # ================= BACKEND DEPLOYMENT =================
+
+# - name: Deploy Backend App
+#   hosts: backend
+#   become: yes
+
+#   vars:
+#     repo_url: https://github.com/yaswanth-1999/ToDo-Full-Stack-App.git
+#     app_dir: /opt/app
+#     project_dir: "{{ app_dir }}/ToDo-Full-Stack-App"
+#     backend_port_host: 8081
+#     backend_port_container: 8080
+
+#   tasks:
+#     - name: Install required packages
+#       yum:
+#         name:
+#           - git
+#           - docker
+#         state: present
+    
+#     - name: Ensure backend log directory exists 
+#       file:
+#         path: /var/log/global
+#         state: directory
+#         owner: root
+#         group: root
+#         mode: "0755"
+
+#     - name: Start and enable Docker
+#       service:
+#         name: docker
+#         state: started
+#         enabled: yes
+
+#     - name: Ensure app directory exists
+#       file:
+#         path: "{{ app_dir }}"
+#         state: directory
+#         mode: "0755"
+
+#     - name: Clone or update repository
+#       git:
+#         repo: "{{ repo_url }}"
+#         dest: "{{ project_dir }}"
+#         version: main
+#         force: yes
+
+#     - name: Stop old backend container if exists
+#       command: docker rm -f backend
+#       ignore_errors: yes
+
+#     - name: Build backend Docker image
+#       command: docker build -t employee-backend .
+#       args:
+#         chdir: "{{ project_dir }}/backend-springboot-h2"
+
+#     - name: Run backend container
+#       command: >
+#         docker run -d
+#         --name backend
+#         -p {{ backend_port_host }}:{{ backend_port_container }}
+#         --restart always
+#         employee-backend
+
+
+# # ================= FRONTEND DEPLOYMENT =================
+
+# - name: Rebuild and redeploy Frontend App
+#   hosts: frontend
+#   become: yes
+
+#   vars:
+#     repo_url: https://github.com/yaswanth-1999/ToDo-Full-Stack-App.git
+#     app_dir: /opt/app
+#     project_dir: "{{ app_dir }}/ToDo-Full-Stack-App"
+#     frontend_port_host: 3000
+#     backend_proxy_url: "http://13.233.123.11:8081"
+
+#   tasks:
+#     - name: Install required packages
+#       yum:
+#         name:
+#           - git
+#           - docker
+#         state: present
+
+#     - name: Start and enable Docker
+#       service:
+#         name: docker
+#         state: started
+#         enabled: yes
+
+#     - name: Ensure app directory exists
+#       file:
+#         path: "{{ app_dir }}"
+#         state: directory
+#         mode: "0755"
+
+#     - name: Clone or update repository
+#       git:
+#         repo: "{{ repo_url }}"
+#         dest: "{{ project_dir }}"
+#         version: main
+#         force: yes
+
+#     - name: Update API URL in TodoApiService.js
+#       lineinfile:
+#         path: "{{ project_dir }}/frontend-react-app/src/components/todo/api/TodoApiService.js"
+#         regexp: "const API_URL = .*"
+#         line: "const API_URL = '{{ backend_proxy_url }}';"
+#         backup: yes
+
+#     - name: Stop old frontend container if exists
+#       command: docker rm -f frontend
+#       ignore_errors: yes
+
+#     - name: Build frontend Docker image
+#       command: docker build -t employee-frontend .
+#       args:
+#         chdir: "{{ project_dir }}/frontend-react-app"
+
+#     - name: Run frontend container
+#       command: >
+#         docker run -d
+#         --name frontend
+#         -p {{ frontend_port_host }}:80
+#         --restart always
+#         employee-frontend
+
+#     - name: Verify running containers
+#       command: docker ps
+#       register: docker_output
+
+#     - name: Display running containers
+#       debug:
+#         var: docker_output.stdout_lines
 
